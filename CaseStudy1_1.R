@@ -7,6 +7,8 @@ library(rJava)
 library(xlsx)
 library(tidyverse)
 
+##### Dr. Davis's Code #####
+
 # Reading in data initially
 data = read.xlsx("ssc_case_study_2_inflammatory_bowel_disease.xlsx",
                  sheetIndex=1 ,as.is=TRUE)
@@ -78,3 +80,4 @@ head(data2) # Why are these two not the same? The x's in front?
 
 # Now we have our cleaned data set: let's use data2 as in class
 
+##### End of Dr. Davis's Code #####
