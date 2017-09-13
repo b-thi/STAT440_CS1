@@ -81,3 +81,44 @@ head(data2) # Why are these two not the same? The x's in front?
 # Now we have our cleaned data set: let's use data2 as in class
 
 ##### End of Dr. Davis's Code #####
+
+# Looking at individual variables
+
+## Group
+summary(data2$Group)
+
+# There are 59 patients with Crohn's diseas, 41 who don't have any and
+# 26 with ulcerative colitis
+
+## Sex
+summary(data2$Sex)
+
+# There are 74 females and 52 males
+
+## Age
+summary(data2$Age)
+
+# The maximum age is 73 and the minimum age is 20 – the median age is 44.
+
+## Ethnicity
+summary(data2$Ethnicity)
+
+# What to do with asian, hispanic, and indian observations? Genetic
+# differences may suggest that throwing out these observations makes
+# sense as they might skew results. 
+
+# Let's look at the first gene expression as a function
+expression_1 <- as.data.frame(data2$`200006_at`)
+colnames(expression_1) <- "200006_at"
+
+head(expression_1)
+ggplot(data = expression_1, aes(x = time(expression_1$`200006_at`), 
+                                y = expression_1$`200006_at`)) + 
+  geom_point() + geom_smooth(method = "lm")
+
+# Doesn't seem to be much to look at here, let's make plots for every one
+# of the gene expressions and see how they look
+
+
+
+
