@@ -201,7 +201,7 @@ rf_1 <- randomForest(data2_train_comb22$Group ~ .,
                      mtry = 10)
 
 # Looking at randomforest
-rf_1
+summary(rf_1)
 
 # Predicted
 predicted_1 <- as.vector(predict(rf_1, data2_train_comb22))
@@ -309,12 +309,15 @@ rf_2 <- randomForest(data2_train_comb33$Group ~ .,
 predicted_1_fix <- as.vector(predict(rf_2, data2_train_comb33))
 actual_values_train <- as.vector(data2_train_comb33$Group)
 
+
 # Looking at predictions
 predicted_1_fix == actual_values_train
 
 # Now trying with test data
 predicted_2_fix <- as.vector(predict(rf_2, data2_test_comb44))
 actual_values_test <- as.vector(data2_test_comb44$Group)
+nrow(data2_test_comb44)
+nrow(data2_train_comb33)
 
 # Comparing
 predicted_2_fix == actual_values_test
@@ -563,8 +566,8 @@ for (i in 1:25) {
 }
 
 mean(success_rate)
-
 summary(success_rate)
+
 
 ######### Testing again ##########
 
@@ -610,3 +613,73 @@ lm1 <- lm(data2_train_comb3$Group ~ ., data = data2_train_comb3)
 
 lm1AIC <- step(lm1, scope = list(lower =~ 1, upper =~ .), direction = "backward",
                k = log(nrow(data2_train_comb3)), data = data2_train_comb3)
+
+
+
+######### Reading in data
+
+data3 <- data2[-1,]
+
+datatestt <- cs1_data[87:122,]
+datatrainn <- cs1_data[1:86, ]
+
+rf.model1 <- randomForest(datatrainn$Group ~ ., data = datatrainn)
+
+
+
+######## Trying XGBoost #########
+# first, let's do one hot encoding
+sparse_matrix <- sparse.model.matrix(SalePrice ~ .-1, data = housing.train5)
+sparse_matrix
+
+xgb <- xgboost(data = housing.train.numerc, 
+               eta = 0.1,
+               max_depth = 15, 
+               nround=25, 
+               subsample = 0.5,
+               colsample_bytree = 0.5,
+               seed = 1,
+               eval_metric = "merror",
+               objective = "multi:softprob",
+               num_class = 12,
+               nthread = 3
+)
+
+################# Getting rid of correlated variables ###############
+library('caret')
+
+df1 = read.csv("stack.csv")
+
+print (df1)
+
+df1 = data2_scaled[,5:313]
+df2 = cor(df1)
+
+
+df2 = cor(df1)
+hc = findCorrelation(df2, cutoff=0.75) # putt any value as a "cutoff" 
+hc = sort(hc)
+reduced_Data = df1[,-c(hc)]
+print (reduced_Data)
+
+reduced_data2 <- cbind(data2_scaled[,1:4], reduced_Data)
+
+for (i in 1:10) {
+  
+  trainData <- sample_n(reduced_data2, 50, replace = T)
+  testData <- sample_n(reduced_data2, 50, replace = T)
+  
+  ideal4 <- class.ind(trainData$Group)
+  
+  gene_ANN3 <- nnet(trainData[, -c(1:4)], ideal4, size = 13, softmax = T, MaxNWts = 4714)
+  
+  test_pred2 <- predict(gene_ANN2, testData[, -c(1:4)], type = "class")
+  
+  success_rate[i] <- sum(test_pred2 == testData$Group)/nrow(testData)
+  
+}
+
+mean(success_rate)
+summary(success_rate)
+
+######################## Not as good #########################
