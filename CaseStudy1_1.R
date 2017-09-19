@@ -481,7 +481,7 @@ nrow(data2_test_comb44)
 # Ideal
 ideal2 <- class.ind(data2_train2$Group)
 
-gene_ANN <- nnet(data2_train2[, -c(1:4)], ideal2, size = 10, softmax = T, MaxNWts = 3200)
+gene_ANN <- nnet(data2_train2[, -c(1:4)], ideal2, size = 13, softmax = T, MaxNWts = 4714)
 
 # 100% success rate
 train_pred2 <- predict(gene_ANN, data2_train2[,-c(1:4)], type="class")
@@ -493,6 +493,78 @@ sum(test_pred2 == data2_test2$Group)/nrow(data2_test2)
 
 ####### Cross-Validating #######
 
+#Randomly shuffle the data
+yourData <- data2[sample(nrow(data2)),]
+
+#Create 10 equally size folds
+folds <- cut(seq(1,nrow(yourData)),breaks=10,labels=FALSE)
+
+# Defining empty vector
+success_rate <- NULL
+
+#Perform 10 fold cross validation
+for(i in 1:10){
+  
+  #Segement your data by fold using the which() function 
+  testIndexes <- which(folds==i,arr.ind=TRUE)
+  testData <- yourData[testIndexes, ]
+  trainData <- yourData[-testIndexes, ]
+  
+  #Use the test and train data partitions however you desire...
+  
+  ideal3 <- class.ind(trainData$Group)
+  
+  gene_ANN2 <- nnet(trainData[, -c(1:4)], ideal3, size = 13, softmax = T, MaxNWts = 4714)
+  
+  test_pred2 <- predict(gene_ANN2, testData[, -c(1:4)], type = "class")
+  
+  success_rate[i] <- sum(test_pred2 == testData$Group)/nrow(testData)
+  
+}
+
+mean(success_rate, na.rm = T)
+
+for(i in 1:10){
+  
+  #Segement your data by fold using the which() function 
+  testIndexes <- which(folds==i,arr.ind=TRUE)
+  testData <- yourData[testIndexes, ]
+  trainData <- yourData[-testIndexes, ]
+  
+  #Use the test and train data partitions however you desire...
+  
+  ideal3 <- class.ind(trainData$Group)
+  
+  gene_ANN2 <- nnet(trainData[, -c(1:4)], ideal3, size = 13, softmax = T, MaxNWts = 4714)
+  
+  test_pred2 <- predict(gene_ANN2, testData[, -c(1:4)], type = "class")
+  
+  success_rate[i] <- sum(test_pred2 == testData$Group)/nrow(testData)
+  
+}
+
+data2_scaled <- cbind(data2[,1:4], apply(data2[,5:313], 2, function(x) ((x - mean(x))/sd(x))))
+
+success_rate <- NULL
+
+for (i in 1:25) {
+  
+  trainData <- sample_n(data2_scaled, 50, replace = T)
+  testData <- sample_n(data2_scaled, 50, replace = T)
+  
+  ideal4 <- class.ind(trainData$Group)
+  
+  gene_ANN2 <- nnet(trainData[, -c(1:4)], ideal4, size = 13, softmax = T, MaxNWts = 4714)
+  
+  test_pred2 <- predict(gene_ANN2, testData[, -c(1:4)], type = "class")
+  
+  success_rate[i] <- sum(test_pred2 == testData$Group)/nrow(testData)
+  
+}
+
+mean(success_rate)
+
+summary(success_rate)
 
 ######### Testing again ##########
 
