@@ -121,8 +121,17 @@ ggplot(data = expression_1, aes(x = time(expression_1$`200006_at`),
 
 ####### Splitting Data into Training/Test ########
 
-data2_train <- data2[1:(nrow(data2)/1.5),]
-data2_test <- data2[((nrow(data2)/1.5) + 1):nrow(data2),]
+data2_train1 <- data2[1:(nrow(data2)/1.5),]
+data2_train2 <- cbind(data2_train1[,1:4], 
+                      apply(data2_train1[,5:313], 2, function(x) ((x - mean(x))/sd(x))))
+
+data2_test1 <- data2[((nrow(data2)/1.5) + 1):nrow(data2),]
+data2_test2 <- cbind(data2_test1[,1:4],
+  apply(data2_test1[,5:313], 2, function(x) ((x - mean(x))/sd(x))))
+
+# Standardizing
+data2_train <- apply(data2_train1[,5:313], 2, function(x) ((x - mean(x))/sd(x)))
+data2_test <- apply(data2_test1[,5:313], 2, function(x) ((x - mean(x))/sd(x)))
 
 #########################################
 
@@ -156,15 +165,22 @@ data2_test <- data2[((nrow(data2)/1.5) + 1):nrow(data2),]
 library(pcaMethods)
 
 # Performing PCA
-pca_train <- pca(data2_train, nPcs = 15)
+pca_train <- pca(data2_train, nPcs = 42)
+pca_train1 <- pca(data2_train2, nPcs = 42)
+
 summary(pca_train)
+summary(pca_train1)
+
 scores_pca <- as.data.frame(scores(pca_train))
+scores_pca1 <- as.data.frame(scores(pca_train1))
 
 # Combining Data
-data2_train_comb2 <- cbind(data2_train[,1:4], scores_pca)
+data2_train_comb2 <- cbind(data2_train1[,1:4], scores_pca)
+data2_train_comb22 <- cbind(data2_train1[,1:4], scores_pca1)
 
 # Looking at data
 data2_train_comb2
+data2_train_comb22
 
 ########## - Finished this Dimension Reduction ##########
 
@@ -176,144 +192,157 @@ library(nnet)
 data2_train_comb2$Group <- droplevels(data2_train_comb2$Group)
 data2_train_comb2$Ethnicity <- droplevels(data2_train_comb2$Ethnicity)
 
+data2_train_comb22$Group <- droplevels(data2_train_comb22$Group)
+data2_train_comb22$Ethnicity <- droplevels(data2_train_comb22$Ethnicity)
+
 # Running random forest
-rf_1 <- randomForest(data2_train_comb2$Group ~ ., 
-                     data = data2_train_comb2, ntree = 10000,
+rf_1 <- randomForest(data2_train_comb22$Group ~ ., 
+                     data = data2_train_comb22, ntree = 10000,
                      mtry = 10)
 
 # Looking at randomforest
 rf_1
 
 # Predicted
-predicted_1 <- as.vector(predict(rf_1, data2_train_comb2))
-actual_values_train <- as.vector(data2_train_comb2$Group)
+predicted_1 <- as.vector(predict(rf_1, data2_train_comb22))
+actual_values_train <- as.vector(data2_train_comb22$Group)
 
 # Looking at predictions
 predicted_1 == actual_values_train
 
 # Looking at it from test set
-pca_test <- pca(data2_test, nPcs = 15)
+pca_test <- pca(data2_test, nPcs = 42)
 summary(pca_test)
 scores_pca2 <- as.data.frame(scores(pca_test))
 
+pca_test1 <- pca(data2_test2, nPcs = 42)
+summary(pca_test1)
+scores_pca22 <- as.data.frame(scores(pca_test))
+
+
 # Combining Data
-data2_test_comb2 <- cbind(data2_test[,1:4], scores_pca2)
+data2_test_comb2 <- cbind(data2_test1[,1:4], scores_pca2)
+data2_test_comb22 <- cbind(data2_test2[,1:4], scores_pca22)
 
 # Getting rid of useless levels
-data2_test_comb2$Group <- droplevels(data2_test_comb2$Group)
-data2_test_comb2$Ethnicity <- droplevels(data2_test_comb2$Ethnicity)
+data2_test_comb22$Group <- droplevels(data2_test_comb22$Group)
+data2_test_comb22$Ethnicity <- droplevels(data2_test_comb22$Ethnicity)
 
-str(data2_test_comb2$Group)
-str(data2_train_comb2$Group)
+str(data2_test_comb22$Group)
+str(data2_train_comb22$Group)
 
-str(data2_test_comb2$Ethnicity)
-str(data2_train_comb2$Ethnicity)
+str(data2_test_comb22$Ethnicity)
+str(data2_train_comb22$Ethnicity)
 
 # Predicting again
-predicted_2 <- as.vector(predict(rf_1, data2_test_comb2))
+predicted_2 <- as.vector(predict(rf_1, data2_test_comb22))
 
 # New factors present error - need to get rid of useless obs
-summary(data2_test_comb2$Ethnicity)
-summary(data2_train_comb2$Ethnicity)
+summary(data2_test_comb22$Ethnicity)
+summary(data2_train_comb22$Ethnicity)
 
 # Getting rid of hispanic observation
-data2_test_comb3 <- data2_test_comb2 %>% 
+data2_test_comb33 <- data2_test_comb22 %>% 
                       filter(Ethnicity != "asian")
 
 # Looking at new summary
-summary(data2_test_comb3$Ethnicity)
+summary(data2_test_comb33$Ethnicity)
 
 # Dropping levels again
-data2_test_comb3$Ethnicity <- droplevels(data2_test_comb3$Ethnicity)
+data2_test_comb33$Ethnicity <- droplevels(data2_test_comb33$Ethnicity)
 
 # Attempting to predict again
-predicted_2 <- as.vector(predict(rf_1, data2_test_comb3))
+predicted_2 <- as.vector(predict(rf_1, data2_test_comb33))
 
-colnames(data2_test_comb3) == colnames(data2_train_comb2)
+colnames(data2_test_comb33) == colnames(data2_train_comb22)
 
 # Fail again, let's look at other variables
-summary(data2_test_comb2$Group)
-summary(data2_train_comb2$Group)
+summary(data2_test_comb22$Group)
+summary(data2_train_comb22$Group)
 
-summary(data2_test_comb2$Ethnicity)
-summary(data2_train_comb2$Ethnicity)
+summary(data2_test_comb22$Ethnicity)
+summary(data2_train_comb22$Ethnicity)
 
 # Fixing error again
-levels(data2_test_comb3$Ethnicity) <- levels(data2_train_comb2$Ethnicity)
+levels(data2_test_comb33$Ethnicity) <- levels(data2_train_comb22$Ethnicity)
 
 # Looking again at factors
-summary(data2_test_comb3$Ethnicity)
-summary(data2_train_comb2$Ethnicity)
+summary(data2_test_comb33$Ethnicity)
+summary(data2_train_comb22$Ethnicity)
 
 # Now predicting AGAIn
-predicted_3 <- as.vector(predict(rf_1, data2_test_comb3))
+predicted_3 <- as.vector(predict(rf_1, data2_test_comb33))
 
 # Now, let's check our predictions
-actual_values_test <- as.vector(data2_test_comb3$Group)
-
+actual_values_test <- as.vector(data2_test_comb33$Group)
+nrow(data2_test_comb33)
 # Comparing
 sum(predicted_3 == actual_values_test)
 
 # Fail - 14/41 correct lol
 
 # Let's re-run by editing our training data a bit
-data2_train_comb3 <- data2_train_comb2 %>% 
+data2_train_comb33 <- data2_train_comb22 %>% 
   filter(Ethnicity == c("black", "caucasian"))
 
-levels(data2_test_comb3$Ethnicity) <- levels(data2_train_comb3$Ethnicity)
+levels(data2_test_comb33$Ethnicity) <- levels(data2_train_comb33$Ethnicity)
 
-data2_test_comb4 <- data2_test_comb3 %>% 
+data2_test_comb44 <- data2_test_comb33 %>% 
   filter(Ethnicity != c("hispanic", "indian"))
 
-summary(data2_train_comb3$Ethnicity)
-summary(data2_test_comb4$Ethnicity)
+summary(data2_train_comb33$Ethnicity)
+summary(data2_test_comb44$Ethnicity)
 
-data2_train_comb3$Ethnicity <- droplevels(data2_train_comb3$Ethnicity)
-data2_test_comb4$Ethnicity <- droplevels(data2_test_comb4$Ethnicity)
+data2_train_comb33$Ethnicity <- droplevels(data2_train_comb33$Ethnicity)
+data2_test_comb44$Ethnicity <- droplevels(data2_test_comb44$Ethnicity)
 
-summary(data2_train_comb3$Ethnicity)
-summary(data2_test_comb4$Ethnicity)
+summary(data2_train_comb33$Ethnicity)
+summary(data2_test_comb44$Ethnicity)
 
 # New random forest
 # Running random forest
-rf_2 <- randomForest(data2_train_comb3$Group ~ ., 
-                     data = data2_train_comb3, ntree = 10000,
+rf_2 <- randomForest(data2_train_comb33$Group ~ ., 
+                     data = data2_train_comb33, ntree = 10000,
                      mtry = 10)
 
 # Predicted again
-predicted_1_fix <- as.vector(predict(rf_2, data2_train_comb3))
-actual_values_train <- as.vector(data2_train_comb3$Group)
+predicted_1_fix <- as.vector(predict(rf_2, data2_train_comb33))
+actual_values_train <- as.vector(data2_train_comb33$Group)
 
 # Looking at predictions
 predicted_1_fix == actual_values_train
 
 # Now trying with test data
-predicted_2_fix <- as.vector(predict(rf_2, data2_test_comb4))
-actual_values_test <- as.vector(data2_test_comb4$Group)
+predicted_2_fix <- as.vector(predict(rf_2, data2_test_comb44))
+actual_values_test <- as.vector(data2_test_comb44$Group)
 
 # Comparing
 predicted_2_fix == actual_values_test
+sum(predicted_2_fix == actual_values_test)
+length(actual_values_test)
 
 ####### Multinomial Model ########
-fit_mnom <- multinom(data2_train_comb3$Group ~ ., 
-                     data = data2_train_comb3)
+fit_mnom <- multinom(data2_train_comb33$Group ~ ., 
+                     data = data2_train_comb33)
 
 pred_multinom <- predict(fit_mnom, type="probs", 
-                         newdata = data2_test_comb4)
+                         newdata = data2_test_comb44)
 
 pred_multinom_rounded <- round(pred_multinom, 0)
+pred_multinom_round_t <- t(pred_multinom_rounded)
+pred_multinom_round_t
 
-data2_test_comb4$Group
+data2_test_comb44$Group
 
 # Running another multinomial model
-fit_mnom2 <- multinom(data2_train$Group ~ ., 
-                      data = data2_train)
+fit_mnom2 <- multinom(data2_train1$Group ~ ., 
+                      data = data2_train1)
 
 pred_multinom2 <- round(predict(fit_mnom2, type="probs", 
-                         newdata = data2_test))
+                         newdata = data2_test1))
 
-pred_multinom2
-data2_test$Group
+t(pred_multinom2)
+data2_test1$Group
 
 ##### Method is not the best ######
 
@@ -365,3 +394,132 @@ m1 <- randomForest(cs1_data$Group ~ ., data = cs1_data, ntree = 100 )
 
 fit2 <- glm(scaled.data2$Group ~ ., data = scaled.data2)
 fit3 <- lm(scaled.data2$Group ~ ., data = scaled.data2)
+
+
+# Looking at correlations
+heatmap(cs1_data, "lol")
+
+heatmap(data2_train_comb3, "train")
+
+t(cor(cs1_data[,6:313]))
+
+corr.df <- cor(data2_train_comb33[,5:46])
+
+get_lower_tri <- function(data){
+  data[upper.tri(data)] <- NA
+  return(data)
+}
+
+melt.corr.df <- melt(get_lower_tri(corr.df), na.rm = T)
+
+corr.d2 <- cor(data2_train2[,5:nrow(data2_train2)])
+melt.corr.df2 <- melt(get_lower_tri(corr.d2))
+melt.corr.df2
+
+ordered_corr <- melt.corr.df2 %>% 
+                  arrange(-value)
+
+
+####### Neural Net ########
+library(tidyverse)
+library(nnet)
+
+### Practice
+
+# Loading in data
+seeds<- read.csv("seeds.csv", header=T)
+
+# Looking at data
+seeds <- seeds[,1:8]
+str(seeds)
+
+colnames(seeds) <- c("area", "perimeter", "compactness",
+                     "kernal_length", "kernel_width", "asymmetry", 
+                     "length_kernel_groove", "Class")
+
+# Training data set
+seedstrain<- sample(1:210,147)
+
+# Test data set
+seedstest <- setdiff(1:210,seedstrain)
+
+# Normalizing
+ideal <- class.ind(seeds$Class)
+
+# nnet
+seedsANN = nnet(seeds[seedstrain,-8], ideal[seedstrain,], size=10, softmax=TRUE)
+
+# Predicting training set
+predict(seedsANN, seeds[seedstrain,-8], type="class")
+
+# Predicting test set
+table(predict(seedsANN, seeds[seedstest,-8], type="class"),seeds[seedstest,]$Class)
+
+test_pred <- as.integer(predict(seedsANN, seeds[seedstest, -8], type = "class"))
+
+seeds[seedstest, 8]
+
+sum(test_pred == seeds[seedstest, 8])
+
+### Redoing now with our gene expression data ###
+
+# Ideal
+ideal2 <- class.ind(data2_train_comb33$Group)
+
+gene_ANN <- nnet(data2_train_comb33[, -c(1:4)], ideal2, size = 10, softmax = T)
+
+# 100% success rate
+train_pred2 <- predict(gene_ANN, data2_train_comb33[,-c(1:4)], type="class")
+sum(train_pred2 == data2_train_comb33$Group)
+
+test_pred2 <- predict(gene_ANN, data2_test_comb44[, -c(1:4)], type = "class")
+
+sum(test_pred2 == data2_test_comb44$Group)
+nrow(data2_test_comb44)
+
+heatmap
+
+######### Testing again ##########
+
+
+######## LASSSO -> Neural Net ########
+
+# first testing dr. davis's code
+library(glmnet)
+
+x = matrix(rnorm())
+
+x=matrix(rnorm(100*20),100,20)
+y=rnorm(100)
+
+fit1=glmnet(x,y)
+
+print(fit1)
+
+plot(fit1)
+
+x2=matrix(rnorm(100*20), 100, 20)
+y2=1*x2[,1] + 2*x2[,2] + 3*x2[,3] + rnorm(100)
+fit2=glmnet(x2,y2)
+print(fit2)
+plot(fit2)
+
+### Extract these lambdas
+lambs = print(fit2)[,3]
+
+### Print coefficients for the first 10
+coef(fit2,s=lambs[1:10])
+
+###### Trying for the gene expression data ######
+x_1 <- data2_train_comb3[,5:46] # Extracting out principal components
+y_1 <- data2_train_comb3[,1] # Extracting out the predicted values
+
+lasso_fit <- glmnet(x_1, y_1)
+
+
+
+# Using AIC and BIC to dimension reduce #
+lm1 <- lm(data2_train_comb3$Group ~ ., data = data2_train_comb3)
+
+lm1AIC <- step(lm1, scope = list(lower =~ 1, upper =~ .), direction = "backward",
+               k = log(nrow(data2_train_comb3)), data = data2_train_comb3)
