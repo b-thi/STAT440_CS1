@@ -477,7 +477,22 @@ test_pred2 <- predict(gene_ANN, data2_test_comb44[, -c(1:4)], type = "class")
 sum(test_pred2 == data2_test_comb44$Group)
 nrow(data2_test_comb44)
 
-heatmap
+##### Trying again but with original data #####
+# Ideal
+ideal2 <- class.ind(data2_train2$Group)
+
+gene_ANN <- nnet(data2_train2[, -c(1:4)], ideal2, size = 10, softmax = T, MaxNWts = 3200)
+
+# 100% success rate
+train_pred2 <- predict(gene_ANN, data2_train2[,-c(1:4)], type="class")
+sum(train_pred2 == data2_train2$Group)
+
+test_pred2 <- predict(gene_ANN, data2_test2[, -c(1:4)], type = "class")
+
+sum(test_pred2 == data2_test2$Group)/nrow(data2_test2)
+
+####### Cross-Validating #######
+
 
 ######### Testing again ##########
 
